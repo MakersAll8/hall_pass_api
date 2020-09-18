@@ -4,7 +4,7 @@ const User = require('../models/userModel')
 const adminAuth = async (req, res, next) => {
     try {
         const token = req.header('Authorization').replace('Bearer ', '')
-        const decoded = jwt.verify(token, '12$6KSzf4O2m0RFYRFOzN/vE.qt0tvCS.BXGIl0wFk4FZ4IWf')
+        const decoded = jwt.verify(token, process.env.JWT_SECRET)
         const user = await User.findOne({
             _id: decoded._id,
             tokens: {
