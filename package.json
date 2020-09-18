@@ -1,0 +1,20 @@
+{
+  "name": "hall_pass_sheboygan_falls_api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "author": "Xiao Li",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^4.17.1",
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^5.10.5",
+    "qrcode": "^1.4.4",
+    "validator": "^13.1.1"
+  }
+}
