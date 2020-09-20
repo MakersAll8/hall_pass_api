@@ -4,4 +4,4 @@
 /package-lock.json
 /locations.json
 /users.json
-/config/dev.env
+/config/.env
