@@ -2,3 +2,6 @@
 /*.csv
 /.idea
 /package-lock.json
+/locations.json
+/users.json
+/config/dev.env

@@ -21,6 +21,7 @@ const locationSchema = new mongoose.Schema({
     },
 }, {
     toJSON: { virtuals: true },
+    toObject: { virtuals: true },
 })
 
 locationSchema.virtual('teachers', {
@@ -28,6 +29,13 @@ locationSchema.virtual('teachers', {
     localField: 'id',
     foreignField: 'teacherLocation'
 })
+
+locationSchema.methods.locationRequireApproval = async function (){
+    const location = this
+    await location.populate('teachers').execPopulate()
+    const locObject = location.toObject()
+    return locObject.teachers.length > 0;
+}
 
 const Location = mongoose.model('Location', locationSchema)
 

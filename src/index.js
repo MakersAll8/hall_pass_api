@@ -5,7 +5,7 @@ const passRouter = require('./routers/passRouter')
 const locationRouter = require('./routers/locationRouter')
 
 const app = express()
-const port = process.env.port
+const port = process.env.PORT
 
 app.use(express.json())
 app.use(userRouter)

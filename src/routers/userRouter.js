@@ -15,6 +15,17 @@ router.post('/login', async (req, res) => {
     }
 })
 
+
+router.post('/studentQrLogin/:qrString',async (req, res) => {
+    try {
+        const student = await User.findStudentByQrAndId(req.params.qrString, req.body.id)
+        const {token, expires} = await student.generateAuthToken()
+        res.send({user:student, token, expires})
+    } catch (e) {
+        res.status(400).send()
+    }
+})
+
 router.get('/logout', auth, async (req, res) => {
     try {
         req.user.tokens = req.user.tokens.filter((token) => {
@@ -62,7 +73,7 @@ router.patch('/users/:id', adminAuth, async (req, res) => {
         const isValidOperation = updateFields.every((update) => allowedUpdates.includes(update))
 
         if (!isValidOperation) {
-            return res.status(400).send({error: 'Invalid updates!'})
+            res.status(400).send({error: 'Invalid updates!'})
         }
 
         const user = await User.findOne({_id: req.params.id})
@@ -77,6 +88,26 @@ router.patch('/users/:id', adminAuth, async (req, res) => {
 
     } catch (e) {
         res.status(400).send(e)
+    }
+})
+
+// get user
+router.get('/users/:id', adminAuth, async (req, res) => {
+    try {
+        const user = await User.findOne({_id: req.params.id})
+        if (!user) {
+            res.status(404).send({error: "User not found"})
+        }
+        if(user.userType==='TEACHER' || user.userType==='ADMIN'){
+            await user.populate('room').execPopulate()
+        } else if(user.userType==='STUDENT'){
+            await user.populate('homeroom').execPopulate()
+        }
+        res.send(user)
+
+    } catch (e) {
+        console.log(e)
+        res.status(400).send({error: ""})
     }
 })
 
@@ -97,6 +128,22 @@ router.get('/teachers', auth, async (req, res) => {
 
         res.send(teachers)
 
+    } catch (e) {
+        res.status(400).send(e)
+    }
+})
+// GET {{url}}/users
+// GET {{url}}/users?limit=10&skip=10
+router.get('/users', teacherAuth, async (req, res) => {
+    try {
+
+
+        const users = await User.find({})
+            .limit(parseInt(req.query.limit))
+            .skip(parseInt(req.query.skip))
+            .populate({path:'homeroom', select: '_id id firstName lastName email userType'})
+            .populate({path:'room'})
+        res.send(users);
     } catch (e) {
         res.status(400).send(e)
     }

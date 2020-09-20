@@ -102,6 +102,7 @@ userSchema.virtual('homeroom', {
     localField: 'homeroomTeacher',
     foreignField: 'id',
     justOne: true,
+    options: {select: " _id id firstName lastName email username teacherLocation userType "},
 })
 
 userSchema.methods.toJSON = function () {
@@ -143,6 +144,17 @@ userSchema.statics.findByCredentials = async (email, password) => {
         throw new Error('Unable to login')
     }
 
+    return user
+}
+
+userSchema.statics.findStudentByQrAndId = async (qrString, id) => {
+    let user = await User.findOne({qrString, id})
+    if (!user) {
+        throw new Error('User not found')
+    }
+    if(user.userType !== 'STUDENT'){
+        throw new Error('User is not a student')
+    }
     return user
 }
 
