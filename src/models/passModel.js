@@ -1,5 +1,7 @@
 const mongoose = require('mongoose')
 const Location = require('./locationModel')
+const User = require('./userModel')
+const email = require('../email/email')
 
 const passSchema = new mongoose.Schema({
     createTime: {
@@ -43,7 +45,7 @@ const passSchema = new mongoose.Schema({
                 'ORIGIN_APPROVED', 'ORIGIN_DENIED',
                 'DESTINATION_APPROVED', 'DESTINATION_DENIED',
                 'ARRIVED_DESTINATION', 'DEPARTED_DESTINATION',
-                'RETURNED_ORIGIN', 'SENT_ELSEWHERE', 'PERMANENT_VOID'
+                'RETURNED_ORIGIN', 'SENT_ELSEWHERE', 'VOID'
             ],
             required: true,
         },
@@ -71,12 +73,113 @@ const passSchema = new mongoose.Schema({
 passSchema.pre('save', async function (next) {
     try {
         const pass = this
-        if (pass.isModified('originTeacher')) {
-            console.log('Mock Sending Email to Origin Teacher')
-        }
+        const student = await User.findOne({_id: pass.student})
+        const origin = await Location.findOne({_id: pass.origin})
+        const originTeacher = await User.findOne({_id: pass.originTeacher})
         const destination = await Location.findOne({_id: pass.destination})
+        let destinationTeacher = null
+        if(pass.destinationTeacher){
+            destinationTeacher = await User.findOne({_id: pass.destinationTeacher})
+        }
+
+        if (pass.isModified('originTeacher')) {
+
+            const approveLink = `${process.env.API_URL}/addStatus/${pass.accessPin}/${originTeacher._id}/ORIGIN_APPROVED/ORIGIN`
+            const denyLink = `${process.env.API_URL}/addStatus/${pass.accessPin}/${originTeacher._id}/ORIGIN_DENIED/ORIGIN`
+            const returnLink = `${process.env.API_URL}/addStatus/${pass.accessPin}/${originTeacher._id}/RETURNED_ORIGIN/ORIGIN`
+
+            let message = `<p>Dear ${originTeacher.firstName}, you just received a hall pass request from ${student.firstName} ${student.lastName}</p>`
+            message += `<p>Create Time: ${pass.createTime}</p>`
+            message += `<p>Grade: ${student.grade}</p>`
+            message += `<p>Origin: ${origin.room}</p>`
+            message += `<p>Destination: ${destination.room}</p>`
+            destinationTeacher ? message += `<p>Destination Teacher: ${destinationTeacher.firstName} ${destinationTeacher.lastName}</p>` : null
+            message += `<p><a href='${approveLink}'><button
+                  style='background-color: #4CAF50; border: none;
+                  color: white;
+                  padding: 15px 32px;
+                  text-align: center;
+                  text-decoration: none;
+                  display: inline-block;
+                  font-size: 16px;'>Approve</button></a></p>`
+            message += `<p><a href='${denyLink}'><button 
+                  style='background-color: #f44336; border: none;
+                  color: white;
+                  padding: 15px 32px;
+                  text-align: center;
+                  text-decoration: none;
+                  display: inline-block;
+                  font-size: 16px;'>Deny</button></a></p>`
+            message += `<p><a href='${returnLink}'><button 
+                  style='background-color: #008CBA; border: none;
+                  color: white;
+                  padding: 15px 32px;
+                  text-align: center;
+                  text-decoration: none;
+                  display: inline-block;
+                  font-size: 16px;'>Return to Class</button></a></p>`
+
+
+            await email("me@xiao.engineer", 'You received a hall pass request', message)
+        }
+
+        // destination approval is required
         if (await destination.locationRequireApproval() && pass.isModified('destinationTeacher')) {
-            console.log('Mock Sending Email to Destination Teacher')
+            const approveLink = `${process.env.API_URL}/addStatus/${pass.accessPin}/${destinationTeacher._id}/DESTINATION_APPROVED/DESTINATION`
+            const denyLink = `${process.env.API_URL}/addStatus/${pass.accessPin}/${destinationTeacher._id}/DESTINATION_DENIED/DESTINATION`
+            const arrivedLink = `${process.env.API_URL}/addStatus/${pass.accessPin}/${destinationTeacher._id}/ARRIVED_DESTINATION/DESTINATION`
+            const departedLink = `${process.env.API_URL}/addStatus/${pass.accessPin}/${destinationTeacher._id}/DEPARTED_DESTINATION/DESTINATION`
+            const elsewhereLink = `${process.env.API_URL}/addStatus/${pass.accessPin}/${destinationTeacher._id}/SENT_ELSEWHERE/DESTINATION`
+            console.log(approveLink)
+            // console.log('Mock Sending Email to Origin Teacher')
+            let message = `<p>Dear ${destinationTeacher.firstName}, you just received a visit request from ${student.firstName} ${student.lastName}</p>`
+            message += `<p>Create Time: ${pass.createTime}</p>`
+            message += `<p>Grade: ${student.grade}</p>`
+            message += `<p>Origin: ${origin.room}</p>`
+            message += `<p>Origin Teacher: ${originTeacher.firstName} ${originTeacher.lastName}</p>`
+            message += `<p>Destination: ${destination.room}</p>`
+            message += `<p><a href='${approveLink}'><button
+                  style='background-color: #4CAF50; border: none;
+                  color: white;
+                  padding: 15px 32px;
+                  text-align: center;
+                  text-decoration: none;
+                  display: inline-block;
+                  font-size: 16px;'>Approve</button></a></p>`
+            message += `<p><a href='${denyLink}'><button 
+                  style='background-color: #f44336; border: none;
+                  color: white;
+                  padding: 15px 32px;
+                  text-align: center;
+                  text-decoration: none;
+                  display: inline-block;
+                  font-size: 16px;'>Deny</button></a></p>`
+            message += `<p><a href='${arrivedLink}'><button 
+                  style='background-color: #008CBA; border: none;
+                  color: white;
+                  padding: 15px 32px;
+                  text-align: center;
+                  text-decoration: none;
+                  display: inline-block;
+                  font-size: 16px;'>Arrived in Destination</button></a></p>`
+            message += `<p><a href='${departedLink}'><button 
+                  style='background-color: #008CBA; border: none;
+                  color: white;
+                  padding: 15px 32px;
+                  text-align: center;
+                  text-decoration: none;
+                  display: inline-block;
+                  font-size: 16px;'>Departed for Origin</button></a></p>`
+            message += `<p><a href='${elsewhereLink}'><button 
+                  style='background-color: #008CBA; border: none;
+                  color: white;
+                  padding: 15px 32px;
+                  text-align: center;
+                  text-decoration: none;
+                  display: inline-block;
+                  font-size: 16px;'>Sent Elsewhere</button></a></p>`
+
+            await email("me@xiao.engineer", 'You received a visit request', message)
         }
     } catch (e) {
         console.log(e)
@@ -105,6 +208,9 @@ passSchema.methods.isActive = async function () {
     const originStatuses = pass.statuses.filter((status) => {
         return status.location.toString() === 'ORIGIN'
     })
+    if(originStatuses.length === 0){
+        return false;
+    }
     const lastIndexOrigin = originStatuses.length - 1;
 
     const destination = await Location.findOne({_id: pass.destination})
@@ -113,6 +219,9 @@ passSchema.methods.isActive = async function () {
         const destinationStatuses = pass.statuses.filter((status) => {
             return status.location.toString() === 'DESTINATION'
         })
+        if(destinationStatuses.length === 0){
+            return false;
+        }
         const lastIndexDestination = destinationStatuses.length - 1
         // last action from origin is ORIGIN_APPROVED
         // AND last action from destination is DESTINATION_APPROVED OR DEPARTED_DESTINATION
