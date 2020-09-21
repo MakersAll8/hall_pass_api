@@ -98,6 +98,13 @@ router.get('/isPassActive/:accessPin', async (req, res) => {
         const accessPin = req.params.accessPin
         const pass = await Pass.findOne({accessPin})
         const active = await pass.isActive()
+        await pass.populate('student').execPopulate()
+        await pass.populate('destination').execPopulate()
+        await pass.populate('origin').execPopulate()
+        await pass.populate('originTeacher').execPopulate()
+        if(pass.destinationTeacher){
+            await pass.populate('destinationTeacher').execPopulate()
+        }
 
         res.send({active, ...pass.toJSON()})
     } catch (e) {

@@ -111,9 +111,11 @@ router.get('/users/:id', adminAuth, async (req, res) => {
     }
 })
 
-router.get('/students', teacherAuth, async (req, res) => {
+// router.get('/students', teacherAuth, async (req, res) => {
+router.get('/students', async (req, res) => {
     try {
         const students = await User.find({userType: 'STUDENT'})
+            .sort({homeroomTeacher: 'asc'})
             .populate({path:'homeroom', select: '_id id firstName lastName email userType'})
         res.send(students);
     } catch (e) {
@@ -135,9 +137,8 @@ router.get('/teachers', auth, async (req, res) => {
 // GET {{url}}/users
 // GET {{url}}/users?limit=10&skip=10
 router.get('/users', teacherAuth, async (req, res) => {
+// router.get('/users', async (req, res) => {
     try {
-
-
         const users = await User.find({})
             .limit(parseInt(req.query.limit))
             .skip(parseInt(req.query.skip))
