@@ -111,8 +111,8 @@ router.get('/users/:id', adminAuth, async (req, res) => {
     }
 })
 
-// router.get('/students', teacherAuth, async (req, res) => {
-router.get('/students', async (req, res) => {
+router.get('/students', teacherAuth, async (req, res) => {
+// router.get('/students', async (req, res) => {
     try {
         const students = await User.find({userType: 'STUDENT'})
             .sort({homeroomTeacher: 'asc'})
@@ -126,6 +126,7 @@ router.get('/students', async (req, res) => {
 router.get('/teachers', auth, async (req, res) => {
     try {
         const teachers = await User.find({$or: [{userType: 'TEACHER'}, {userType: 'ADMIN'}]})
+            .sort({lastName:'asc', firstName:'asc'})
             .populate('room')
 
         res.send(teachers)
