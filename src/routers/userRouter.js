@@ -4,6 +4,7 @@ const auth = require('../middleware/auth')
 const teacherAuth = require("../middleware/teacherAuth");
 const adminAuth = require("../middleware/adminAuth");
 const router = new express.Router()
+const {v4: uuidv4} = require('uuid');
 
 router.post('/login', async (req, res) => {
     try {
@@ -11,18 +12,18 @@ router.post('/login', async (req, res) => {
         const {token, expires} = await user.generateAuthToken()
         res.send({user, token, expires})
     } catch (e) {
-        res.status(400).send()
+        res.send({error: 'Failed to log in'})
     }
 })
 
 
-router.post('/studentQrLogin/:qrString',async (req, res) => {
+router.post('/studentQrLogin/:qrString', async (req, res) => {
     try {
         const student = await User.findStudentByQrAndId(req.params.qrString, req.body.id)
         const {token, expires} = await student.generateAuthToken()
-        res.send({user:student, token, expires})
+        res.send({user: student, token, expires})
     } catch (e) {
-        res.status(400).send()
+        res.send({error: 'Failed to log in'})
     }
 })
 
@@ -34,7 +35,7 @@ router.get('/logout', auth, async (req, res) => {
         await req.user.save()
         res.send({success: "Logged out"})
     } catch (e) {
-        res.status(500).send()
+        res.send({error: 'Failed to log out'})
     }
 })
 
@@ -44,20 +45,41 @@ router.get('/logoutAll', auth, async (req, res) => {
         await req.user.save()
         res.send({success: "Logged out"})
     } catch (e) {
-        res.status(500).send()
+        res.send({error: 'Failed to log out all'})
     }
 })
 
 // production create user
 router.post('/users', adminAuth, async (req, res) => {
-
-    const user = new User(req.body)
     try {
+        const newUser = {
+            id: req.body.id,
+            firstName: req.body.firstName,
+            lastName: req.body.lastName,
+            email: req.body.email,
+            username: req.body.username,
+            password: req.body.password,
+            userType: req.body.userType,
+        }
+        if (req.body.userType === 'STUDENT') {
+            newUser.qrString = uuidv4()
+            newUser.homeroomTeacher = req.body.homeroomTeacher
+            newUser.grade = req.body.grade
+        } else if (req.body.userType === 'TEACHER' || req.body.userType === 'ADMIN') {
+            newUser.teacherLocation = req.body.teacherLocation
+        }
+        const user = new User(newUser)
+
         await user.save()
         const token = await user.generateAuthToken()
         res.status(201).send({user, token})
     } catch (e) {
-        res.status(400).send(e)
+        if (e.code === 11000) {
+            const duplicaetKeys = Object.keys(e.keyValue)
+            res.send({error: duplicaetKeys.join(' ') + " already in use"})
+            return
+        }
+        res.send({error: 'Failed to create user'})
     }
 })
 
@@ -73,12 +95,12 @@ router.patch('/users/:id', adminAuth, async (req, res) => {
         const isValidOperation = updateFields.every((update) => allowedUpdates.includes(update))
 
         if (!isValidOperation) {
-            res.status(400).send({error: 'Invalid updates!'})
+            res.send({error: 'Invalid updates!'})
         }
 
         const user = await User.findOne({_id: req.params.id})
         if (!user) {
-            res.status(404).send()
+            res.send({error: 'Invalid updates!'})
         }
         updateFields.forEach((updateField) => {
             user[updateField] = req.body[updateField]
@@ -87,7 +109,35 @@ router.patch('/users/:id', adminAuth, async (req, res) => {
         res.send(user)
 
     } catch (e) {
-        res.status(400).send(e)
+        res.send({error: 'Failed to update!'})
+    }
+})
+
+router.patch('/updatePassword', auth, async (req, res) => {
+    try {
+        const updateFields = Object.keys(req.body)
+        const allowedUpdates = [
+            'password'
+        ]
+        const isValidOperation = updateFields.every((update) => allowedUpdates.includes(update))
+
+        if (!isValidOperation) {
+            res.send({error: 'Invalid updates!'})
+        }
+
+        const user = await User.findOne({_id: req.user._id})
+        if (!user) {
+            res.send({error: 'Failed to update'})
+            return
+        }
+        updateFields.forEach((updateField) => {
+            user[updateField] = req.body[updateField]
+        })
+        await user.save()
+        res.send(user)
+
+    } catch (e) {
+        res.send({error: 'Failed to update'})
     }
 })
 
@@ -96,18 +146,16 @@ router.get('/users/:id', adminAuth, async (req, res) => {
     try {
         const user = await User.findOne({_id: req.params.id})
         if (!user) {
-            res.status(404).send({error: "User not found"})
+            res.send({error: "User not found"})
         }
-        if(user.userType==='TEACHER' || user.userType==='ADMIN'){
+        if (user.userType === 'TEACHER' || user.userType === 'ADMIN') {
             await user.populate('room').execPopulate()
-        } else if(user.userType==='STUDENT'){
+        } else if (user.userType === 'STUDENT') {
             await user.populate('homeroom').execPopulate()
         }
         res.send(user)
-
     } catch (e) {
-        console.log(e)
-        res.status(400).send({error: ""})
+        res.send({error: "User not found"})
     }
 })
 
@@ -116,23 +164,23 @@ router.get('/students', teacherAuth, async (req, res) => {
     try {
         const students = await User.find({userType: 'STUDENT'})
             .sort({homeroomTeacher: 'asc'})
-            .populate({path:'homeroom', select: '_id id firstName lastName email userType'})
+            .populate({path: 'homeroom', select: '_id id firstName lastName email userType'})
         res.send(students);
     } catch (e) {
-        res.status(400).send(e)
+        res.send({error: "Failed to get students"})
     }
 })
 
 router.get('/teachers', auth, async (req, res) => {
     try {
         const teachers = await User.find({$or: [{userType: 'TEACHER'}, {userType: 'ADMIN'}]})
-            .sort({lastName:'asc', firstName:'asc'})
+            .sort({lastName: 'asc', firstName: 'asc'})
             .populate('room')
 
         res.send(teachers)
 
     } catch (e) {
-        res.status(400).send(e)
+        res.send({error: "Failed to get teachers"})
     }
 })
 // GET {{url}}/users
@@ -143,11 +191,11 @@ router.get('/users', teacherAuth, async (req, res) => {
         const users = await User.find({})
             .limit(parseInt(req.query.limit))
             .skip(parseInt(req.query.skip))
-            .populate({path:'homeroom', select: '_id id firstName lastName email userType'})
-            .populate({path:'room'})
+            .populate({path: 'homeroom', select: '_id id firstName lastName email userType'})
+            .populate({path: 'room'})
         res.send(users);
     } catch (e) {
-        res.status(400).send(e)
+        res.send({error: "Failed to get users"})
     }
 })
 

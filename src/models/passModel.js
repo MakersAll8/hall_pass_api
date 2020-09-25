@@ -120,7 +120,7 @@ passSchema.pre('save', async function (next) {
                   font-size: 16px;'>Return to Class</button></a></p>`
 
 
-            await email("me@xiao.engineer", 'You received a hall pass request', message)
+            await email("metrics@xiao.engineer", 'You received a hall pass request', message)
         }
 
         // destination approval is required
@@ -179,7 +179,7 @@ passSchema.pre('save', async function (next) {
                   display: inline-block;
                   font-size: 16px;'>Sent Elsewhere</button></a></p>`
 
-            await email("me@xiao.engineer", 'You received a visit request', message)
+            await email("metrics@xiao.engineer", 'You received a visit request', message)
         }
     } catch (e) {
         console.log(e)

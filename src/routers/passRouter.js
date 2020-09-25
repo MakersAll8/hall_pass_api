@@ -38,7 +38,7 @@ router.post('/requestPass', auth, async (req, res) => {
         await pass.populate('destination').execPopulate()
         res.send(pass)
     } catch (e) {
-        res.status(400).send({error: 'Failed to create a hall pass request'})
+        res.send({error: 'Failed to create a hall pass request'})
     }
 })
 
@@ -47,7 +47,7 @@ router.patch('/updatePass/:id', teacherAuth, async (req, res) => {
         const passId = req.params.id
         const pass = await Pass.findOne({_id: passId})
         if (!pass) {
-            return res.status(404).send({error: 'pass id not found'})
+            return res.send({error: 'pass id not found'})
         }
         const updateFields = Object.keys(req.body)
         const allowedUpdates = [
@@ -56,20 +56,20 @@ router.patch('/updatePass/:id', teacherAuth, async (req, res) => {
         const isValidOperation = updateFields.every((update) => allowedUpdates.includes(update))
 
         if (!isValidOperation) {
-            return res.status(400).send({error: 'Invalid updates!'})
+            return res.send({error: 'Invalid updates!'})
         }
 
         if (req.body.origin) {
             const origin = await Location.findOne({_id: req.body.origin})
             if (!origin) {
-                return res.status(404).send({error: 'origin id not found'})
+                return res.send({error: 'origin id not found'})
             }
         }
 
         if (req.body.destination) {
             const destination = await Location.findOne({_id: req.body.destination})
             if (!destination) {
-                return res.status(404).send({error: 'destination id not found'})
+                return res.send({error: 'destination id not found'})
             }
         }
 
@@ -89,7 +89,7 @@ router.patch('/updatePass/:id', teacherAuth, async (req, res) => {
 
     } catch (e) {
         // console.log(e)
-        res.status(400).send({error: 'Failed to update hall pass'})
+        res.send({error: 'Failed to update hall pass'})
     }
 })
 
@@ -109,7 +109,7 @@ router.get('/isPassActive/:accessPin', async (req, res) => {
         res.send({active, ...pass.toJSON()})
     } catch (e) {
         console.log(e)
-        res.status(400).send()
+        res.send()
     }
 })
 
@@ -127,40 +127,55 @@ router.get('/addStatus/:accessPin/:teacherId/:action/:locationType', async (req,
         res.send(pass)
     } catch (e) {
         console.log(e)
-        res.status(400).send({error: 'Failed to add your decision to the pass'})
+        res.send({error: 'Failed to add your decision to the pass'})
     }
 })
 
 router.get('/passes', auth, async (req, res) => {
     try {
+        let passes = []
         if (req.user.userType === 'STUDENT') {
-            const passes = await Pass.find({student: req.user._id})
+            passes = await Pass.find({student: req.user._id}, '')
                 .sort({createTime: -1})
                 .limit(parseInt(req.query.limit))
                 .skip(parseInt(req.query.skip))
-                .populate({path: 'student', select: '_id id firstName lastName email userType'})
+                .populate({path: 'student', select: '_id id firstName lastName email userType grade'})
                 .populate({path: 'destination'})
                 .populate({path: 'origin'})
-                .populate({path: 'destinationTeacher'})
-                .populate({path: 'originTeacher'})
-            return res.send(passes);
+                .populate({path: 'destinationTeacher', select: '_id id firstName lastName email userType'})
+                .populate({path: 'originTeacher', select: '_id id firstName lastName email userType'})
+                .populate({path: 'statuses.reviewTeacher', select: '_id id firstName lastName email userType'})
         } else if (req.user.userType === 'TEACHER' || req.user.userType === 'ADMIN') {
-            const passes = await Pass.find({})
+            passes = await Pass.find({})
                 .sort({createTime: -1})
                 .limit(parseInt(req.query.limit))
                 .skip(parseInt(req.query.skip))
-                .populate({path: 'student', select: '_id id firstName lastName email userType'})
+                .populate({path: 'student', select: '_id id firstName lastName email userType grade'})
                 .populate({path: 'destination'})
                 .populate({path: 'origin'})
-                .populate({path: 'destinationTeacher'})
-                .populate({path: 'originTeacher'})
-
-            return res.send(passes);
+                .populate({path: 'destinationTeacher', select: '_id id firstName lastName email userType'})
+                .populate({path: 'originTeacher', select: '_id id firstName lastName email userType'})
+                .populate({path: 'statuses.reviewTeacher', select: '_id id firstName lastName email userType'})
         }
+
+        passes = await (async () => {
+            const results = await Promise.all(passes.map(async (pass) => {
+                return await pass.isActive()
+            }))
+            return passes.map((pass, index) => {
+                return {
+                    ...pass.toObject(),
+                    active: results[index]
+                }
+            })
+        })()
+
+        return res.send(passes);
+
 
 
     } catch (e) {
-        res.status(400).send(e)
+        res.send(e)
     }
 })
 
@@ -171,53 +186,52 @@ router.get('/activePasses', auth, async (req, res) => {
         start.setHours(0, 0, 0, 0)
         end.setHours(23, 59, 59, 999)
 
+        let passes = []
         if (req.user.userType === 'STUDENT') {
-            const passes = await Pass.find({student: req.user._id, createTime: {$gte: start, $lte: end}})
+            passes = await Pass.find({student: req.user._id, createTime: {$gte: start, $lte: end}})
                 .sort({createTime: -1})
                 .limit(parseInt(req.query.limit))
                 .skip(parseInt(req.query.skip))
-                .populate({path: 'student', select: '_id id firstName lastName email userType'})
+                .populate({path: 'student', select: '_id id firstName lastName email userType grade'})
                 .populate({path: 'destination'})
                 .populate({path: 'origin'})
                 .populate({path: 'destinationTeacher', select: '_id id firstName lastName email userType'})
                 .populate({path: 'originTeacher', select: '_id id firstName lastName email userType'})
-
-            // async map and async filter cannot cause side effects
-            // you cannot update arrays from inside async map and async filter
-            const actives = await (async () => {
-                const results = await Promise.all(passes.map(async (pass) => {
-                    return await pass.isActive()
-                }))
-                return passes.filter((pass, index) => results[index])
-            })()
-            return res.send(actives);
+                .populate({path: 'statuses.reviewTeacher', select: '_id id firstName lastName email userType'})
 
         } else if (req.user.userType === 'TEACHER' || req.user.userType === 'ADMIN') {
-            const passes = await Pass.find({createTime: {$gte: start, $lte: end}})
+            passes = await Pass.find({createTime: {$gte: start, $lte: end}})
                 .sort({createTime: -1})
                 .limit(parseInt(req.query.limit))
                 .skip(parseInt(req.query.skip))
-                .populate({path: 'student', select: '_id id firstName lastName email userType'})
+                .populate({path: 'student', select: '_id id firstName lastName email userType grade'})
                 .populate({path: 'destination'})
                 .populate({path: 'origin'})
                 .populate({path: 'destinationTeacher', select: '_id id firstName lastName email userType'})
                 .populate({path: 'originTeacher', select: '_id id firstName lastName email userType'})
+                .populate({path: 'statuses.reviewTeacher', select: '_id id firstName lastName email userType'})
 
-            // async map and async filter cannot cause side effects
-            // you cannot update arrays from inside async map and async filter
-            const actives = await (async () => {
-                const results = await Promise.all(passes.map(async (pass) => {
-                    return await pass.isActive()
-                }))
-                return passes.filter((pass, index) => results[index])
-            })()
-            return res.send(actives);
         }
+
+        // async map and async filter cannot cause side effects
+        // you cannot update arrays from inside async map and async filter
+        let actives = await (async () => {
+            const results = await Promise.all(passes.map(async (pass) => {
+                return await pass.isActive()
+            }))
+            return passes.filter((pass, index) => results[index])
+        })()
+
+        actives = actives.map(active=>{
+            return {...active.toObject(), active: true}
+        })
+
+        return res.send(actives);
 
 
     } catch (e) {
         console.log(e)
-        res.status(400).send({error: "Failed to get active passes"})
+        res.send({error: "Failed to get active passes"})
     }
 })
 
