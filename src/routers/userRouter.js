@@ -1,5 +1,6 @@
 const express = require('express')
 const User = require('../models/userModel')
+const Location = require('../models/locationModel')
 const auth = require('../middleware/auth')
 const teacherAuth = require("../middleware/teacherAuth");
 const adminAuth = require("../middleware/adminAuth");
@@ -105,10 +106,17 @@ router.patch('/users/:id', adminAuth, async (req, res) => {
         updateFields.forEach((updateField) => {
             user[updateField] = req.body[updateField]
         })
+
+        if(req.body.teacherLocation){
+            const location = await Location.findOne({_id: req.body.teacherLocation})
+            user.teacherLocation = parseInt(location.id)
+        }
+
         await user.save()
         res.send(user)
 
     } catch (e) {
+        console.log(e)
         res.send({error: 'Failed to update!'})
     }
 })
