@@ -49,6 +49,32 @@ router.patch('/updatePass/:id', teacherAuth, async (req, res) => {
         if (!pass) {
             return res.send({error: 'pass id not found'})
         }
+        await updatePass(req, res, pass)
+    } catch (e) {
+        // console.log(e)
+        res.send({error: 'Failed to update hall pass'})
+    }
+})
+
+router.patch('/modifyPass/:id/:accessPin', async (req, res) => {
+    try {
+        const passId = req.params.id
+        const pass = await Pass.findOne({_id: passId})
+        if (!pass) {
+            return res.send({error: 'pass not found'})
+        }
+        if (pass.accessPin !== req.params.accessPin) {
+            return res.send({error: 'pass not found'})
+        }
+        await updatePass(req, res, pass)
+    } catch (e) {
+        // console.log(e)
+        res.send({error: 'Failed to update hall pass'})
+    }
+})
+
+const updatePass = async (req, res, pass)=>{
+    try {
         const updateFields = Object.keys(req.body)
         const allowedUpdates = [
             'destination', 'origin', 'destinationTeacher', 'originTeacher'
@@ -91,12 +117,17 @@ router.patch('/updatePass/:id', teacherAuth, async (req, res) => {
         // console.log(e)
         res.send({error: 'Failed to update hall pass'})
     }
-})
+}
 
-router.get('/isPassActive/:accessPin', async (req, res) => {
+router.get('/isPassActive/:id/:accessPin', async (req, res) => {
     try {
         const accessPin = req.params.accessPin
-        const pass = await Pass.findOne({accessPin})
+        const id = req.params.id
+        const pass = await Pass.findOne({_id: id, accessPin})
+        if(!pass){
+            res.send({error: 'Failed to find a pass'})
+            return
+        }
         const active = await pass.isActive()
         await pass.populate('student').execPopulate()
         await pass.populate('destination').execPopulate()
@@ -109,7 +140,7 @@ router.get('/isPassActive/:accessPin', async (req, res) => {
         res.send({active, ...pass.toJSON()})
     } catch (e) {
         console.log(e)
-        res.send()
+        res.send({error: 'Failed to find a pass'})
     }
 })
 
