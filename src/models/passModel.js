@@ -87,6 +87,7 @@ passSchema.pre('save', async function (next) {
             const approveLink = `${process.env.API_URL}/addStatus/${pass.accessPin}/${originTeacher._id}/ORIGIN_APPROVED/ORIGIN`
             const denyLink = `${process.env.API_URL}/addStatus/${pass.accessPin}/${originTeacher._id}/ORIGIN_DENIED/ORIGIN`
             const returnLink = `${process.env.API_URL}/addStatus/${pass.accessPin}/${originTeacher._id}/RETURNED_ORIGIN/ORIGIN`
+            const modifyLink = `${process.env.APP_URL}/modifyPass/${pass._id}/${pass.accessPin}`
 
             let message = `<p>Dear ${originTeacher.firstName}, you just received a hall pass request from ${student.firstName} ${student.lastName}</p>`
             message += `<p>Create Time: ${pass.createTime}</p>`
@@ -118,6 +119,14 @@ passSchema.pre('save', async function (next) {
                   text-decoration: none;
                   display: inline-block;
                   font-size: 16px;'>Return to Class</button></a></p>`
+            message += `<p><a href='${modifyLink}'><button 
+                  style='background-color: #008CBA; border: none;
+                  color: white;
+                  padding: 15px 32px;
+                  text-align: center;
+                  text-decoration: none;
+                  display: inline-block;
+                  font-size: 16px;'>Modify Pass</button></a></p>`
 
 
             await email("metrics@xiao.engineer", 'You received a hall pass request', message)
@@ -130,6 +139,7 @@ passSchema.pre('save', async function (next) {
             const arrivedLink = `${process.env.API_URL}/addStatus/${pass.accessPin}/${destinationTeacher._id}/ARRIVED_DESTINATION/DESTINATION`
             const departedLink = `${process.env.API_URL}/addStatus/${pass.accessPin}/${destinationTeacher._id}/DEPARTED_DESTINATION/DESTINATION`
             const elsewhereLink = `${process.env.API_URL}/addStatus/${pass.accessPin}/${destinationTeacher._id}/SENT_ELSEWHERE/DESTINATION`
+            const modifyLink = `${process.env.APP_URL}/modifyPass/${pass._id}/${pass.accessPin}`
             console.log(approveLink)
             // console.log('Mock Sending Email to Origin Teacher')
             let message = `<p>Dear ${destinationTeacher.firstName}, you just received a visit request from ${student.firstName} ${student.lastName}</p>`
@@ -178,6 +188,14 @@ passSchema.pre('save', async function (next) {
                   text-decoration: none;
                   display: inline-block;
                   font-size: 16px;'>Sent Elsewhere</button></a></p>`
+            message += `<p><a href='${modifyLink}'><button 
+                  style='background-color: #008CBA; border: none;
+                  color: white;
+                  padding: 15px 32px;
+                  text-align: center;
+                  text-decoration: none;
+                  display: inline-block;
+                  font-size: 16px;'>Modify Pass</button></a></p>`
 
             await email("metrics@xiao.engineer", 'You received a visit request', message)
         }

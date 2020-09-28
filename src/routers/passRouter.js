@@ -133,6 +133,7 @@ router.get('/isPassActive/:id/:accessPin', async (req, res) => {
         await pass.populate('destination').execPopulate()
         await pass.populate('origin').execPopulate()
         await pass.populate('originTeacher').execPopulate()
+        await pass.populate('statuses.reviewTeacher').execPopulate()
         if(pass.destinationTeacher){
             await pass.populate('destinationTeacher').execPopulate()
         }
