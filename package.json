@@ -15,6 +15,7 @@
     "env-cmd": "^10.1.0",
     "express": "^4.17.1",
     "jsonwebtoken": "^8.5.1",
+    "moment-timezone": "^0.5.31",
     "mongoose": "^5.10.5",
     "nodemailer": "^6.4.11",
     "qrcode": "^1.4.4",

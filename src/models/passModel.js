@@ -2,6 +2,7 @@ const mongoose = require('mongoose')
 const Location = require('./locationModel')
 const User = require('./userModel')
 const email = require('../email/email')
+const moment = require('moment-timezone')
 
 const passSchema = new mongoose.Schema({
     createTime: {
@@ -207,14 +208,16 @@ passSchema.pre('save', async function (next) {
 
 passSchema.methods.isActive = async function () {
     const pass = this;
-    const now = new Date()
-    const start = new Date(pass.createTime.getTime())
-    const end = new Date(pass.createTime.getTime())
-    start.setHours(0, 0, 0, 0)
-    end.setHours(23, 59, 59, 99)
+    const now = moment().utc()
+    // const start = new Date(pass.createTime.getTime())
+    // const end = new Date(pass.createTime.getTime())
+    // start.setHours(0, 0, 0, 0)
+    // end.setHours(23, 59, 59, 99)
+    const start = moment(pass.createTime).tz(process.env.TIMEZONE).startOf('day').utc()
+    const end = moment(pass.createTime).tz(process.env.TIMEZONE).endOf('day').utc()
 
     // active passes are created today
-    if (!(now >= start && now <= end)) {
+    if (!(now.isAfter(start) && now.isBefore(end))) {
         return false;
     }
     // console.log(pass.statuses.length);
