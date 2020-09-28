@@ -1,0 +1,2 @@
+edit .env file to configure APP_URL and API_URL. APP_URL is the React front end.
+edit .env file to configure JWT_SECRET. This is used to encrypt and verify token
