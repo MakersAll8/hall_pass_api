@@ -85,13 +85,13 @@ passSchema.pre('save', async function (next) {
 
         if (pass.isModified('originTeacher')) {
 
-            const approveLink = `${process.env.API_URL}/addStatus/${pass.accessPin}/${originTeacher._id}/ORIGIN_APPROVED/ORIGIN`
-            const denyLink = `${process.env.API_URL}/addStatus/${pass.accessPin}/${originTeacher._id}/ORIGIN_DENIED/ORIGIN`
-            const returnLink = `${process.env.API_URL}/addStatus/${pass.accessPin}/${originTeacher._id}/RETURNED_ORIGIN/ORIGIN`
+            const approveLink = `${process.env.APP_URL}/addStatus/${pass.accessPin}/${originTeacher._id}/ORIGIN_APPROVED/ORIGIN`
+            const denyLink = `${process.env.APP_URL}/addStatus/${pass.accessPin}/${originTeacher._id}/ORIGIN_DENIED/ORIGIN`
+            const returnLink = `${process.env.APP_URL}/addStatus/${pass.accessPin}/${originTeacher._id}/RETURNED_ORIGIN/ORIGIN`
             const modifyLink = `${process.env.APP_URL}/modifyPass/${pass._id}/${pass.accessPin}`
 
             let message = `<p>Dear ${originTeacher.firstName}, you just received a hall pass request from ${student.firstName} ${student.lastName}</p>`
-            message += `<p>Create Time: ${pass.createTime}</p>`
+            message += `<p>Create Time: ${moment(pass.createTime).tz(process.env.TIMEZONE).format('h:mm:ss a MM/DD/YYYY')}</p>`
             message += `<p>Grade: ${student.grade}</p>`
             message += `<p>Origin: ${origin.room}</p>`
             message += `<p>Destination: ${destination.room}</p>`
@@ -135,16 +135,16 @@ passSchema.pre('save', async function (next) {
 
         // destination approval is required
         if (await destination.locationRequireApproval() && pass.isModified('destinationTeacher')) {
-            const approveLink = `${process.env.API_URL}/addStatus/${pass.accessPin}/${destinationTeacher._id}/DESTINATION_APPROVED/DESTINATION`
-            const denyLink = `${process.env.API_URL}/addStatus/${pass.accessPin}/${destinationTeacher._id}/DESTINATION_DENIED/DESTINATION`
-            const arrivedLink = `${process.env.API_URL}/addStatus/${pass.accessPin}/${destinationTeacher._id}/ARRIVED_DESTINATION/DESTINATION`
-            const departedLink = `${process.env.API_URL}/addStatus/${pass.accessPin}/${destinationTeacher._id}/DEPARTED_DESTINATION/DESTINATION`
-            const elsewhereLink = `${process.env.API_URL}/addStatus/${pass.accessPin}/${destinationTeacher._id}/SENT_ELSEWHERE/DESTINATION`
+            const approveLink = `${process.env.APP_URL}/addStatus/${pass.accessPin}/${destinationTeacher._id}/DESTINATION_APPROVED/DESTINATION`
+            const denyLink = `${process.env.APP_URL}/addStatus/${pass.accessPin}/${destinationTeacher._id}/DESTINATION_DENIED/DESTINATION`
+            const arrivedLink = `${process.env.APP_URL}/addStatus/${pass.accessPin}/${destinationTeacher._id}/ARRIVED_DESTINATION/DESTINATION`
+            const departedLink = `${process.env.APP_URL}/addStatus/${pass.accessPin}/${destinationTeacher._id}/DEPARTED_DESTINATION/DESTINATION`
+            const elsewhereLink = `${process.env.APP_URL}/addStatus/${pass.accessPin}/${destinationTeacher._id}/SENT_ELSEWHERE/DESTINATION`
             const modifyLink = `${process.env.APP_URL}/modifyPass/${pass._id}/${pass.accessPin}`
             console.log(approveLink)
             // console.log('Mock Sending Email to Origin Teacher')
             let message = `<p>Dear ${destinationTeacher.firstName}, you just received a visit request from ${student.firstName} ${student.lastName}</p>`
-            message += `<p>Create Time: ${pass.createTime}</p>`
+            message += `<p>Create Time: ${moment(pass.createTime).tz(process.env.TIMEZONE).format('h:mm:ss a MM/DD/YYYY')}</p>`
             message += `<p>Grade: ${student.grade}</p>`
             message += `<p>Origin: ${origin.room}</p>`
             message += `<p>Origin Teacher: ${originTeacher.firstName} ${originTeacher.lastName}</p>`
