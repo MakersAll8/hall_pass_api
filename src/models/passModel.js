@@ -209,10 +209,6 @@ passSchema.pre('save', async function (next) {
 passSchema.methods.isActive = async function () {
     const pass = this;
     const now = moment().utc()
-    // const start = new Date(pass.createTime.getTime())
-    // const end = new Date(pass.createTime.getTime())
-    // start.setHours(0, 0, 0, 0)
-    // end.setHours(23, 59, 59, 99)
     const start = moment(pass.createTime).tz(process.env.TIMEZONE).startOf('day').utc()
     const end = moment(pass.createTime).tz(process.env.TIMEZONE).endOf('day').utc()
 

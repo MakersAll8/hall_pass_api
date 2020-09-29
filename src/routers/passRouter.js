@@ -7,6 +7,7 @@ const teacherAuth = require("../middleware/teacherAuth");
 const adminAuth = require("../middleware/adminAuth");
 const {v4: uuidv4} = require('uuid');
 const router = new express.Router()
+const moment = require('moment-timezone')
 
 router.post('/requestPass', auth, async (req, res) => {
     try {
@@ -213,10 +214,8 @@ router.get('/passes', auth, async (req, res) => {
 
 router.get('/activePasses', auth, async (req, res) => {
     try {
-        const start = new Date()
-        const end = new Date()
-        start.setHours(0, 0, 0, 0)
-        end.setHours(23, 59, 59, 999)
+        const start = moment().tz(process.env.TIMEZONE).startOf('day').utc()
+        const end = moment().tz(process.env.TIMEZONE).endOf('day').utc()
 
         let passes = []
         if (req.user.userType === 'STUDENT') {
