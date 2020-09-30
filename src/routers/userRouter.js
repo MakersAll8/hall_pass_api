@@ -203,6 +203,7 @@ router.get('/users', teacherAuth, async (req, res) => {
             .populate({path: 'room'})
         res.send(users);
     } catch (e) {
+        console.log(e)
         res.send({error: "Failed to get users"})
     }
 })
