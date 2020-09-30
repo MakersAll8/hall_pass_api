@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "env-cmd -f ./config/.env node src/index.js",
+    "start": "env-cmd -f ./config/.env node src/index.js > apiOut.txt 2> apiErr.txt &",
     "dev": "env-cmd -f ./config/dev.env nodemon src/index.js",
     "test": "env-cmd -f ./config/test.env nodemon src/index.js"
   },

@@ -5,3 +5,5 @@
 /locations.json
 /users.json
 /config/.env
+/apiErr.txt
+/apiOut.txt
