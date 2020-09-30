@@ -172,7 +172,7 @@ router.get('/students', teacherAuth, async (req, res) => {
     try {
         const students = await User.find({userType: 'STUDENT'})
             .sort({homeroomTeacher: 'asc'})
-            .populate({path: 'homeroom', select: '_id id firstName lastName email userType qrString'})
+            .populate({path: 'homeroom', select: '_id id firstName lastName email userType'})
         res.send(students);
     } catch (e) {
         res.send({error: "Failed to get students"})
